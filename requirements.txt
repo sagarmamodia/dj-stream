@@ -1,0 +1,8 @@
+Django==5.2
+python-dotenv==1.1.0
+sqlparse==0.5.3
+requests==2.32.3
+pyjwt==2.10.1
+pymongo==4.12.1
+bson==0.5.10
+psycopg2-binary==2.9.10
