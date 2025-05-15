@@ -2,8 +2,9 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from django.conf import settings
 
-def generate_jwt_token(email, name):
+def generate_jwt_token(id, email, name):
     payload = {
+            'id': id,
             'email': email,
             'name': name,
             'exp': datetime.now(timezone.utc) + timedelta(minutes=30),
@@ -31,9 +32,10 @@ def verify_jwt_token(token):
  
     if exp < datetime.now(timezone.utc):
         return None, True
-
+    
+    id = payload.get('id')
     email = payload.get('email')
     name = payload.get('name')
-    user_data = {'email': email, 'name': name}
+    user_data = {'id': id, 'email': email, 'name': name}
 
     return user_data, False

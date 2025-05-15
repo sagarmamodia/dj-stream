@@ -56,15 +56,13 @@ def oauth_callback(request):
             "https://www.googleapis.com/oauth2/v3/userinfo",
             headers={'Authorization': f"Bearer {access_token}"}
             ).json()
-
-
-    jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user_info['email'])
-    
-   # Store in database
+  
     user = User.objects.filter(email=user_info['email']).first()
     if(user is None):
         user = User.objects.create(auth_type=AuthTypes.OAUTH.value, name=user_info['name'], email=user_info['email'])
 
+    jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.id, user.email, user.name)
+   
     oauth_token_object, created = OAuthToken.objects.get_or_create(user=user)
     oauth_token_object.access_token = access_token
     oauth_token_object.refresh_token = refresh_token
@@ -97,6 +95,7 @@ def authenticate_request(request):
         return JsonResponse({'error': 'Invalid token'}, status=401)
     
     response = JsonResponse({'status': 'valid'}, status=200)
+    response['X-user-id'] = user_data['id']
     response['X-email'] = user_data['email']
     response['X-name'] = user_data['name'] 
     return response
@@ -124,11 +123,11 @@ def renew_jwt_token(request):
         if(user_data is None):
             return JsonResponse({'error': 'Invalid access token'}, status=401)
         
-        actual_refresh_token_object = JwtRefreshToken.objects.get(email=user_data['email'])
+        actual_refresh_token_object = JwtRefreshToken.objects.get(user__id=user_data['id'])
         if(jwt_refresh_token != actual_refresh_token_object.refresh_token):
             return JsonResponse({'error': 'Invalid refresh token'}, status=401)
         
-        renewed_jwt_token, renewed_refresh_token = jwt_auth.generate_jwt_token(user_data['email'], user_data['name'])
+        renewed_jwt_token, renewed_refresh_token = jwt_auth.generate_jwt_token(user_data['id'], user_data['email'], user_data['name'])
         
         return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=400)
     
@@ -187,7 +186,7 @@ def login_user(request):
         if(user.password != password):
             return JsonResponse({'error': 'Incorrect password'}, status=401)
     
-        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.email, user.name)
+        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.id, user.email, user.name)
 
         return JsonResponse({'access_token': jwt_access_token, 'refresh_token': jwt_refresh_token}, status=200)
     
