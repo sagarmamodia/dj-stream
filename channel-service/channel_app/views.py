@@ -118,7 +118,6 @@ def get_playlists_of_channel(request, channel_id):
         response['playlist'].append(playlist_dict)
 
     return JsonResponse(response, status=200)
-
 def get_playlist_info(request, playlist_id):
     pass
 
@@ -287,3 +286,41 @@ def get_searched_video(request, search_query):
 
 def get_video_recommendations(request):
     pass
+
+def upload_video_metadata(request):
+    """
+    Post data format
+    {
+        channel_id 
+        title 
+        description
+        public: Optional
+        file_id - id of file in object storage
+    }
+    """ 
+    if request.method == "POST":
+        try:
+            data = json.loads(request.data)
+            channel_id = data['channel_id']
+            title=  data['title']
+            desc = data['description']
+            public = data['public']
+            file_id = data['file_id']
+        except:
+            return JsonResponse({"error": "Invalid data format"}, status=400)
+        try:
+            channel = Channel.objects.filter(id=channel_id).first()
+        except:
+            return JsonResponse({"error": "Failed to fetch channel from database"}, status=500)
+
+        if(channel.user_id != request.user.id):
+            return JsonResponse({"error": "You are not the owner of the channel"}, status=401)
+
+        try:
+            video_metadata_id = Video.objects.get_or_create(channel_id=channel_id, title=title, description=desc, public=public, file_id=file_id)
+        except:
+            return JsonResponse({"error": "Failed to add metadata in the database"}, status=500)
+        
+        return JsonResponse({"video_id": video_metadata_id.id}, status=200)
+    else:
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=400)

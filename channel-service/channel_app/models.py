@@ -37,4 +37,12 @@ class SubscriberEntry(models.Model):
     user_id = models.UUIDField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    
+class Video(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    channel_id = models.UUIDField()
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated_at = models.DateTimeField(auto_now=True)
+    file_id = models.CharField(max_length=200)
