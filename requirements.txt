@@ -6,3 +6,4 @@ pyjwt==2.10.1
 pymongo==4.12.1
 bson==0.5.10
 psycopg2-binary==2.9.10
+python-multipart==0.0.20
