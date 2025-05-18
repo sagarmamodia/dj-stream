@@ -1,0 +1,1 @@
+{'_id': ObjectId('682a3ea00b8e6c1a67fece7d'), 'filename': 'test_file.jpg', 'total_chunks': 5, 'chunk_size': 1048576}
