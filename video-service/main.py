@@ -6,6 +6,7 @@ from utils import JsonResponse
 from bson import ObjectId
 from gridfs import GridFS
 import uuid
+import pika
 
 app = FastAPI()
 
@@ -18,6 +19,12 @@ upload_session = db_temp['upload_session']
 chunks = db_temp['chunks']
 
 fs = GridFS(db_videos)
+
+# RabbitMQ configuration
+connnection_parameters = pika.ConnectionParameters('localhost', port=5672)
+connection = pika.BlockingConnection(connection_parameters)
+channel = connection.channel()
+# channel.queue_declare()
 
 # Models
 class UploadSession(BaseModel):

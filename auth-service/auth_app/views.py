@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from dotenv import load_dotenv
 import secrets
 import urllib
@@ -13,7 +14,7 @@ import json
 load_dotenv()
 
 def get_oauth2_url(request):
-    state = secrets.token_urlsafe(32)
+    state = secrets.token_urlsafe(32) 
     request.session['oauth_state'] = state #store in backend session db for validation later
 
     #construct the oauth url
@@ -100,6 +101,7 @@ def authenticate_request(request):
     response['X-name'] = user_data['name'] 
     return response
 
+@csrf_exempt
 def renew_jwt_token(request):
     """
     Post request data format
@@ -134,7 +136,7 @@ def renew_jwt_token(request):
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
 
-
+@csrf_exempt
 def register_user(request):
     """
     Post request data format
@@ -155,12 +157,13 @@ def register_user(request):
         email = data.get('email')
         password = data.get('password')
 
-        user = User.objects.create(auth_type=AuthType.EMAIL.value, name=name, email=email, password=password)
+        user = User.objects.create(auth_type=AuthTypes.EMAIL.value, name=name, email=email, password=password)
         
         return JsonResponse({'status': 'success'})
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
 
+@csrf_exempt
 def login_user(request):
     """
     Post request data format
@@ -181,12 +184,16 @@ def login_user(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
+        
+        try:
+            user = User.objects.filter(email=email).first()
+        except:
+            return JsonResponse({"error": "Failure to fetch user from database"}, status=500)
 
-        user = User.objects.create(email=email)
         if(user.password != password):
             return JsonResponse({'error': 'Incorrect password'}, status=401)
     
-        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.id, user.email, user.name)
+        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(str(user.id), user.email, user.name)
 
         return JsonResponse({'access_token': jwt_access_token, 'refresh_token': jwt_refresh_token}, status=200)
     

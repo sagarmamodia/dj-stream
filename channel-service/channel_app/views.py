@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Channel, Playlist, VideoInPlaylistEntry, SubscriberEntry
+from .models import Channel, Playlist, VideoInPlaylistEntry, SubscriberEntry, Video
 import json
 from django.conf import settings
 import requests
@@ -44,19 +44,15 @@ def get_all_channels(request, user_id):
     except:
         return JsonResponse({"error": "Internal server error"}, status=501)
 
-    response = {
-            "channel_list": []
+    response = { "channel_list": [] }
+    for channel in channel_list: channel_dict = {
+            "id": channel.id,
+            "name": channel.name,
+            "description": channel.description,
+            "user_id": channel.user_id,
+            "created_at": channel.created_at
     }
-
-    for channel in channel_list:
-        channel_dict = {
-                "id": channel.id,
-                "name": channel.name,
-                "description": channel.description,
-                "user_id": channel.user_id,
-                "created_at": channel.created_at
-        }
-        response["channel_list"].append(channel_dict)
+    response["channel_list"].append(channel_dict)
 
     return JsonResponse(response, status=200)
 
@@ -77,7 +73,7 @@ def get_all_videos_of_channel(request, channel_id):
     try:
         response = requests.post(endpoint, headers=headers, data=data) 
     except:
-        return JsonReponse({"error": "Failed to fetch video details from video service"} status=501)
+        return JsonReponse({"error": "Failed to fetch video details from video service"}, status=501)
 
     video_data_list = response.json()['video_details']
     response = {
@@ -252,35 +248,76 @@ def remove_video_from_playlist(request):
     }
     """
     if request.method == "POST":
-            try:
-                data = json.loads(request.data)
-                playlist_id = data['playlist_id']
-                video_id = data['video_id']
-            except:
-                return JsonResponse({"error": "Invalid data format"}, status=400)
-            
-            user_id = request.user.id
-            # check if the authenticated user is the owner of the playlist
-            try:
-                playlist = Playlist.objects.filter(id=playlist_id).first() 
-            except: 
-                return JsonResponse({"error": "Failed to fetch playlist from database"}, status=500)     
+        try:
+            data = json.loads(request.data)
+            playlist_id = data['playlist_id']
+            video_id = data['video_id']
+        except:
+            return JsonResponse({"error": "Invalid data format"}, status=400)
         
-            if playlist is None:
-                return JsonResponse({"error": "Playlist not found in database"}, status=400)
+        user_id = request.user.id
+        # check if the authenticated user is the owner of the playlist
+        try:
+            playlist = Playlist.objects.filter(id=playlist_id).first() 
+        except: 
+            return JsonResponse({"error": "Failed to fetch playlist from database"}, status=500)     
+    
+        if playlist is None:
+            return JsonResponse({"error": "Playlist not found in database"}, status=400)
 
-            if user_id != playlist.user_id:
-                return JsonResponse({"error": "You are not the owner of this playlist"}, status=401)
-            
-            try:
-                entry = VideoInPlaylistEntry.objects.filter(playlist_id=playlist_id, video_id=video_id).first()
-                entry.delete()
-            except:
-                return JsonResponse({"error": "Failed to delete video from playlist in database"}, status=500) 
-            return JsonResponse({"status": "success"}, status=200)
+        if user_id != playlist.user_id:
+            return JsonResponse({"error": "You are not the owner of this playlist"}, status=401)
+        
+        try:
+            entry = VideoInPlaylistEntry.objects.filter(playlist_id=playlist_id, video_id=video_id).first()
+            entry.delete()
+        except:
+            return JsonResponse({"error": "Failed to delete video from playlist in database"}, status=500) 
+        return JsonResponse({"status": "success"}, status=200)
 
-        else:
-            return JsonResponse({"error": "Only POST requests are allowed."}, status=400)
+    else:
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=400)
+
+def upload_video_metadata(request):
+    """
+    Post data format
+    {
+        channel_id
+        title
+        description
+        public
+        file_id(in mongodb)
+    }
+
+    Response data format
+    {
+        video_id
+    }
+    """
+    if request.method=="POST":
+        try:
+            payload = json.loads(request.data)
+            channel_id = payload['channel_id']
+            title = payload['title']
+            desc = payload['description']
+            public = payload['public']
+            file_id = payload['file_id']
+        except:
+            return JsonResponse({"error": "Invalid data format."}, status=400)
+
+        #check if file_id exists in mongodb database
+
+        #store metadata 
+        try:
+            video_id = Video.objects.get_or_create(channel_id=channel_id, title=title, description=desc, public=public)
+        except:
+            return JsonResponse({"error": "Failure to put video metadata in the database"}, status=500)
+
+        return JsonResponse({"video_id": video_id})
+
+    else:
+        return JsonResponse({"error": "Only POST requests are allowed."}, status=400)
+
 
 def get_searched_video(request, search_query):
     pass
