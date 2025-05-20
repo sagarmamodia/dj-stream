@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from . import jwt_auth
 from .models import User, OAuthToken, JwtRefreshToken, AuthTypes
 import json
+import uuid
 
 load_dotenv()
 
@@ -118,20 +119,31 @@ def renew_jwt_token(request):
     """
     if request.method == 'POST':
         data = json.loads(request.body)
-        jwt_access_token = data['jwt_access_token']
-        jwt_refresh_token = data['jwt_refresh_token']
+        jwt_access_token = data['access_token']
+        jwt_refresh_token = data['refresh_token']
 
-        user_data, expired = jwt_auth.verify_jwt_token(access_token)
+        user_data, expired = jwt_auth.verify_jwt_token(jwt_access_token)
         if(user_data is None):
             return JsonResponse({'error': 'Invalid access token'}, status=401)
         
-        actual_refresh_token_object = JwtRefreshToken.objects.get(user__id=user_data['id'])
+        user_id = uuid.UUID(user_data['id'])
+        actual_refresh_token_object = JwtRefreshToken.objects.filter(user__id=user_id).first()
+        if(actual_refresh_token_object is None):
+            return JsonResponse({"error": "No refresh token exists"}, status=400)
+
         if(jwt_refresh_token != actual_refresh_token_object.refresh_token):
             return JsonResponse({'error': 'Invalid refresh token'}, status=401)
         
         renewed_jwt_token, renewed_refresh_token = jwt_auth.generate_jwt_token(user_data['id'], user_data['email'], user_data['name'])
         
-        return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=400)
+        #save new refresh token to database
+        try:
+            actual_refresh_token_object.refresh_token = renewed_refresh_token
+            actual_refresh_token_object.save()
+        except:
+            return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
+
+        return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=200)
     
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
@@ -156,8 +168,11 @@ def register_user(request):
         name = data.get('name')
         email = data.get('email')
         password = data.get('password')
-
-        user = User.objects.create(auth_type=AuthTypes.EMAIL.value, name=name, email=email, password=password)
+        
+        try:
+            user = User.objects.create(auth_type=AuthTypes.EMAIL.value, name=name, email=email, password=password)
+        except:
+            return JsonResponse({"error": "Failure to create user in database."}, status=500)
         
         return JsonResponse({'status': 'success'})
     else:
@@ -195,6 +210,18 @@ def login_user(request):
     
         jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(str(user.id), user.email, user.name)
 
+        print(jwt_refresh_token)
+
+        jwt_refresh_token_object = JwtRefreshToken.objects.filter(user=user).first()
+        if(jwt_refresh_token_object is None):
+            JwtRefreshToken.objects.create(user=user, refresh_token=jwt_refresh_token)
+        else:
+            try:            
+                jwt_refresh_token_object.refresh_token = jwt_refresh_token
+                jwt_refresh_token_object.save()
+            except:
+                return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
+        
         return JsonResponse({'access_token': jwt_access_token, 'refresh_token': jwt_refresh_token}, status=200)
     
     else:
