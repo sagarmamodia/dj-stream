@@ -43,6 +43,7 @@ class Video(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     public = models.BooleanField(default=True)
+    file_id = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 

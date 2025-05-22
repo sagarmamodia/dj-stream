@@ -21,9 +21,9 @@ chunks = db_temp['chunks']
 fs = GridFS(db_videos)
 
 # RabbitMQ configuration
-connnection_parameters = pika.ConnectionParameters('localhost', port=5672)
-connection = pika.BlockingConnection(connection_parameters)
-channel = connection.channel()
+# connection_parameters = pika.ConnectionParameters('localhost', port=5672)
+# connection = pika.BlockingConnection(connection_parameters)
+# channel = connection.channel()
 # channel.queue_declare()
 
 # Models
@@ -124,7 +124,7 @@ def complete_upload(payload: Dict[str, str]):
         for chunk in binary_chunks:
             f.write(chunk)
 
-        # save this file to mongodb
+    # save this file to mongodb
     
     with open(filename, 'rb') as f:
         f.seek(0)
@@ -133,13 +133,9 @@ def complete_upload(payload: Dict[str, str]):
         except:
             return JsonResponse(error="Failure to put merged file in database", status=500)
             
-    with open('console.txt', 'w') as f:
-        f.write(str(file_id))
-   
+    # delete upload session and chunks 
+    # put an event in the queue because this task can be done without making user wait for the response 
     
     return JsonResponse(file_id=str(file_id))
 
-
-if __name__=='__main__':
-    app.run(port=8000)
 

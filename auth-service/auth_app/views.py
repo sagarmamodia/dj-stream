@@ -216,8 +216,6 @@ def login_user(request):
     
         jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(str(user.id), user.email, user.name)
 
-        print(jwt_refresh_token)
-
         jwt_refresh_token_object = JwtRefreshToken.objects.filter(user=user).first()
         if(jwt_refresh_token_object is None):
             JwtRefreshToken.objects.create(user=user, refresh_token=jwt_refresh_token)
