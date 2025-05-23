@@ -63,25 +63,24 @@ def get_all_channels(request, user_id):
 
 def get_all_videos_of_channel(request, channel_id):
     try:
-        video_entry_list = VideoInPlaylistEntry.objects.filter(channel_id=channel_id)
+        video_entry_list = Video.objects.filter(channel_id=channel_id)
     except:
         return JsonResponse({"error": "Failed to fetch video_entries from database"}, status=501)
     
-    video_id_list = [video_entry.id for video_entry in video_entry_list]
-    
-    # get video detail from the video service
-    endpoint = f"{settings.SERVICE_ENDPOINT['video_service']}/get-video-detail-from-ids/"
-    headers = {'Content-Type': 'application/json'}
-    data = json.dumps({'video-ids-list': video_id_list})
-    try:
-        response = requests.post(endpoint, headers=headers, data=data) 
-    except:
-        return JsonReponse({"error": "Failed to fetch video details from video service"}, status=501)
-
-    video_data_list = response.json()['video_details']
     response = {
-            "video_list" : video_data_list
+        "videos": []
     }
+
+    for video_obj in video_entry_list:
+        video_dict = {
+            "id": str(video_obj.id),
+            "channel_id": str(video_obj.channel_id),
+            "title": video_obj.title,
+            "description": video_obj.description,
+            "file_id": video_obj.file_id
+        }
+        response['videos'].append(video_dict)
+
 
     return JsonResponse(response, status=200)
 

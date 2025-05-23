@@ -1,4 +1,5 @@
-from fastapi import FastAPI, status, Form, File, Depends, UploadFile, Body
+from fastapi import FastAPI, status, Form, File, Depends, UploadFile, Body, Request
+from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
 from typing import Annotated, Union, Dict
@@ -133,9 +134,63 @@ def complete_upload(payload: Dict[str, str]):
         except:
             return JsonResponse(error="Failure to put merged file in database", status=500)
             
-    # delete upload session and chunks 
-    # put an event in the queue because this task can be done without making user wait for the response 
-    
+    # delete upload session and chunks put an event in the queue because this task can be done without making user wait for the response 
     return JsonResponse(file_id=str(file_id))
 
+@app.get('/video/stream/{file_id}/')
+def stream_video(request: Request, file_id: str):
 
+    try:
+        grid_out = fs.get(ObjectId(file_id)) 
+    except:
+        return JsonResponse(error="Failure to fetch video file from database", status=500)
+
+    filesize = grid_out.length
+    # read Range header 
+    range_header = request.headers.get("Range")
+    if range_header:
+        try:
+            unit, range_str = range_header.split("=")
+            range_tuple = range_str.split("-")
+            print(range_tuple)
+            if len(range_tuple) == 1 or range_tuple[1]=='':
+                start_str = range_tuple[0]
+                end_str = str(filesize-1)
+            elif len(range_tuple) == 2:
+                start_str = range_tuple[0]
+                end_str = range_tuple[1]
+
+            start = int(start_str)
+            end = int(end_str)
+
+        except:
+            return JsonResponse(error="Invalid range headers", status=400)
+    else:
+        start = 0
+        end = filesize-1
+
+    chunk_size = 1024*64
+
+    def file_iterator(start_byte:int, end_byte:int):
+        grid_out.seek(start_byte)
+        bytes_left = end_byte-start_byte+1
+        while bytes_left>0:
+            read_len = min(chunk_size, bytes_left)
+            data = grid_out.read(read_len)
+            if not data:
+                break 
+            yield data 
+            bytes_left -= len(data)
+
+    headers = {
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(end-start+1),
+        "Content-Range": f"bytes {start}-{end}/{filesize}",
+      }
+
+    return StreamingResponse(file_iterator(start, end), headers=headers, media_type="video/mp4", status_code=206)
+
+@app.get('/home/')
+def home():
+    return JsonResponse(res="It works")
