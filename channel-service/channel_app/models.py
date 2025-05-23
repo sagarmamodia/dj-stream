@@ -46,4 +46,3 @@ class Video(models.Model):
     file_id = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
-
