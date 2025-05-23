@@ -7,20 +7,6 @@ import requests
 from .utils import parse_auth_headers
 from django.views.decorators.csrf import csrf_exempt
 
-# def errorJsonResponse(code):
-#     error_list = [
-#         JsonReponse({"error": "Internal server error"}, status=500),
-#         JsonResponse({"error": "Invalid data format"}, status=400),
-#         JsonResponse({"error": "Failed to retrieve data from database"}, status=500),
-#         JsonResponse({"error": "Failed to fetch data from internal service"}, status=500),
-#         JsonReponse({"error": "Failed to put data in database"}, status=500),
-#         JsonResponse({"error": "Only POST requests are allowed"}, status=401)
-#     ]
-#     if(code < 0 or code >= len(error_list)):
-#         code = 0
-#
-#     return error_list[code]
-
 def get_channel_info(request, channel_id):
     try:
         channel = Channel.objects.filter(id=channel_id).first()
@@ -116,6 +102,7 @@ def get_playlists_of_channel(request, channel_id):
         response['playlists'].append(playlist_dict)
 
     return JsonResponse(response, status=200)
+
 def get_playlist_info(request, playlist_id):
     try:
         playlist = Playlist.objects.filter(id=playlist_id).first()
@@ -133,7 +120,27 @@ def get_playlist_info(request, playlist_id):
     return JsonResponse(response)
 
 def get_videos_in_playlist(request, playlist_id):
-    pass
+    try:
+        video_list = VideoInPlaylistEntry.objects.filter(playlist_id=uuid.UUID(playlist_id))
+    except:
+        return JsonResponse({"error": "Failure to fetch videos from database."}, status=500)
+
+    response = {
+        "video_list": []
+    }
+
+    for video_obj in video_list:
+        video_dict = {
+            "id": str(video_obj.id),
+            "channel_id": str(video_obj.channel_id),
+            "title": video_obj.title,
+            "description": video_obj.description,
+            "file_id": video_obj.file_id
+        }
+        response['video_list'].append(video_dict)
+
+    return JsonResponse(response)
+
 
 @csrf_exempt
 @parse_auth_headers
@@ -299,7 +306,7 @@ def remove_video_from_playlist(request):
         if playlist is None:
             return JsonResponse({"error": "Playlist not found in database"}, status=400)
 
-        if user_id != playlist.user_id:
+        if user_id != str(playlist.user_id):
             return JsonResponse({"error": "You are not the owner of this playlist"}, status=401)
         
         try:
