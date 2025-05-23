@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from pydantic import BaseModel, Field
 from typing import Annotated, Union, Dict
 from utils import JsonResponse
-from bson import ObjectId
+from bson.objectid import ObjectId
 from gridfs import GridFS
 import uuid
 import pika
