@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from dotenv import load_dotenv
 import secrets
 import urllib
@@ -9,11 +10,12 @@ from django.http import JsonResponse
 from . import jwt_auth
 from .models import User, OAuthToken, JwtRefreshToken, AuthTypes
 import json
+import uuid
 
 load_dotenv()
 
 def get_oauth2_url(request):
-    state = secrets.token_urlsafe(32)
+    state = secrets.token_urlsafe(32) 
     request.session['oauth_state'] = state #store in backend session db for validation later
 
     #construct the oauth url
@@ -21,11 +23,11 @@ def get_oauth2_url(request):
             'client_id': os.getenv('GOOGLE_OAUTH_CLIENT'),
             
             #This should be the url of frontend not backend
-            'redirect_uri': f"{settings.BACKEND_URL}/accounts/google/login/callback/",
+            'redirect_uri': f"{settings.BACKEND_URL}/auth/accounts/google/login/callback/",
             'response_type': 'code',
             'scope': 'openid email profile',
             'state': state,
-            'access_type': 'offline',
+            'access_type': 'online',
             }
    
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
@@ -44,13 +46,13 @@ def oauth_callback(request):
                 'code': code,
                 'client_id': os.getenv('GOOGLE_OAUTH_CLIENT'),
                 'client_secret': os.getenv('GOOGLE_OAUTH_SECRET'),
-                'redirect_uri': f"{settings.BACKEND_URL}/accounts/google/login/callback/",
+                'redirect_uri': f"{settings.BACKEND_URL}/auth/accounts/google/login/callback/",
                 'grant_type': 'authorization_code',
                 }
             ).json()
     
     access_token=token_response['access_token']
-    refresh_token = token_response['refresh_token']
+    # refresh_token = token_response['refresh_token']
 
     user_info = requests.get(
             "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -61,16 +63,22 @@ def oauth_callback(request):
     if(user is None):
         user = User.objects.create(auth_type=AuthTypes.OAUTH.value, name=user_info['name'], email=user_info['email'])
 
-    jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.id, user.email, user.name)
+    jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(str(user.id), user.email, user.name)
    
-    oauth_token_object, created = OAuthToken.objects.get_or_create(user=user)
-    oauth_token_object.access_token = access_token
-    oauth_token_object.refresh_token = refresh_token
-    oauth_token_object.save()
-
-    jwt_refresh_token_object, created = JwtRefreshToken.objects.get_or_create(user=user)
-    jwt_refresh_token_object.refresh_token = jwt_refresh_token 
-    jwt_refresh_token_object.save()
+    try:
+        oauth_token_object, created = OAuthToken.objects.get_or_create(user=user)
+        oauth_token_object.access_token = access_token
+        # oauth_token_object.refresh_token = refresh_token
+        oauth_token_object.save()
+    except:
+        return JsonResponse({"error": "Failure to put oauth tokens to database"}, status=500)
+        
+    try:
+        jwt_refresh_token_object, created = JwtRefreshToken.objects.get_or_create(user=user)
+        jwt_refresh_token_object.refresh_token = jwt_refresh_token 
+        jwt_refresh_token_object.save()
+    except:
+        return JsonResponse({"error": "Failure to put jwt token to database"}, status=500)
 
     return JsonResponse({
         'access_token': jwt_access_token,
@@ -100,6 +108,7 @@ def authenticate_request(request):
     response['X-name'] = user_data['name'] 
     return response
 
+@csrf_exempt
 def renew_jwt_token(request):
     """
     Post request data format
@@ -116,25 +125,36 @@ def renew_jwt_token(request):
     """
     if request.method == 'POST':
         data = json.loads(request.body)
-        jwt_access_token = data['jwt_access_token']
-        jwt_refresh_token = data['jwt_refresh_token']
+        jwt_access_token = data['access_token']
+        jwt_refresh_token = data['refresh_token']
 
-        user_data, expired = jwt_auth.verify_jwt_token(access_token)
+        user_data, expired = jwt_auth.verify_jwt_token(jwt_access_token)
         if(user_data is None):
             return JsonResponse({'error': 'Invalid access token'}, status=401)
         
-        actual_refresh_token_object = JwtRefreshToken.objects.get(user__id=user_data['id'])
+        user_id = uuid.UUID(user_data['id'])
+        actual_refresh_token_object = JwtRefreshToken.objects.filter(user__id=user_id).first()
+        if(actual_refresh_token_object is None):
+            return JsonResponse({"error": "No refresh token exists"}, status=400)
+
         if(jwt_refresh_token != actual_refresh_token_object.refresh_token):
             return JsonResponse({'error': 'Invalid refresh token'}, status=401)
         
         renewed_jwt_token, renewed_refresh_token = jwt_auth.generate_jwt_token(user_data['id'], user_data['email'], user_data['name'])
         
-        return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=400)
+        #save new refresh token to database
+        try:
+            actual_refresh_token_object.refresh_token = renewed_refresh_token
+            actual_refresh_token_object.save()
+        except:
+            return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
+
+        return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=200)
     
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
 
-
+@csrf_exempt
 def register_user(request):
     """
     Post request data format
@@ -154,13 +174,17 @@ def register_user(request):
         name = data.get('name')
         email = data.get('email')
         password = data.get('password')
-
-        user = User.objects.create(auth_type=AuthType.EMAIL.value, name=name, email=email, password=password)
+        
+        try:
+            user = User.objects.create(auth_type=AuthTypes.EMAIL.value, name=name, email=email, password=password)
+        except:
+            return JsonResponse({"error": "Failure to create user in database."}, status=500)
         
         return JsonResponse({'status': 'success'})
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
 
+@csrf_exempt
 def login_user(request):
     """
     Post request data format
@@ -181,13 +205,27 @@ def login_user(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
+        
+        try:
+            user = User.objects.filter(email=email).first()
+        except:
+            return JsonResponse({"error": "Failure to fetch user from database"}, status=500)
 
-        user = User.objects.create(email=email)
         if(user.password != password):
             return JsonResponse({'error': 'Incorrect password'}, status=401)
     
-        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(user.id, user.email, user.name)
+        jwt_access_token, jwt_refresh_token = jwt_auth.generate_jwt_token(str(user.id), user.email, user.name)
 
+        jwt_refresh_token_object = JwtRefreshToken.objects.filter(user=user).first()
+        if(jwt_refresh_token_object is None):
+            JwtRefreshToken.objects.create(user=user, refresh_token=jwt_refresh_token)
+        else:
+            try:            
+                jwt_refresh_token_object.refresh_token = jwt_refresh_token
+                jwt_refresh_token_object.save()
+            except:
+                return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
+        
         return JsonResponse({'access_token': jwt_access_token, 'refresh_token': jwt_refresh_token}, status=200)
     
     else:
