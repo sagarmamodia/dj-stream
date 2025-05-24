@@ -1,0 +1,102 @@
+from fastapi import FastAPI, Depends, Request
+import pika
+from utils import JsonResponse, is_valid_uuid
+from sqlalchemy.orm import Session
+from sqlalchemy import select, func
+import models
+import schemas
+import uuid
+from rabbitmq import RabbitMQ
+
+app = FastAPI()
+mq = RabbitMQ()
+
+# session generator
+def get_db():
+    db = models.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# rabbitmq 
+QUEUE_NAME = "interaction-events"
+
+@app.on_event("startup")
+def startup():
+    mq.connect()
+
+@app.on_event("shutdown")
+def shutdown():
+    mq.close()
+
+@app.get('/interaction/likes/{video_id}/', response_model=schemas.LikesResponse)
+def get_likes(video_id: str, session: Session=Depends(get_db)):
+    try:
+        stmt = select(func.count()).where(Likes.video_id==video_id)
+        result = session.execute(stmt).scalar()
+    except:
+        return JsonResponse(error="Failure to fetch likes data from database", status=500)
+
+    response = schemas.LikesResponse(video_id=video_id, likes=result)
+
+    return response
+
+@app.post('/interaction/like_video/{video_id}/')
+def like_video(request: Request, video_id: str):
+    if(not is_valid_uuid(video_id)):
+        return JsonResponse(error="{video_id} is not a valid ID", status=400)
+
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+    
+    try:
+        mq.publish({"event": "like", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+    
+    return JsonResponse(status=200)
+
+@app.post('/interaction/dislike_video/{video_id}/')
+def like_video(request: Request, video_id: str):
+    if(not is_valid_uuid(video_id)):
+        return JsonResponse(error="{video_id} is not a valid ID", status=400)
+
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+
+    try:
+        mq.publish({"event": "dislike", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+    
+    return JsonResponse(status=200)
+
+@app.post('/interaction/comment_video/')
+def like_video(request: Request, comment: schemas.CommentRequest):
+    video_id = comment.video_id
+    content = comment.content
+
+    # constraints
+    if not is_valid_id(video_id):
+        return JsonResponse(error=f"{video_id} is not a valid ID")
+    if len(content) > 200:
+        return JsonResponse(error=f"The max limit for comment is 200 words.")
+
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+
+    try:
+        mq.publish({"event": "comment", "video_id": video_id, "user_id": user_id, "content"}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+    
+    return JsonResponse(status=200)
+
+
