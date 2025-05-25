@@ -41,6 +41,16 @@ class Comments(Base):
     content = Column(String)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+class SubscriptionEntry(Base):
+    __tablename__ = 'subscription_entry'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    user_id = Column(UUID(as_uuid=True))
+    channel_id = Column(UUID(as_uuid=True))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    
+
 
 Base.metadata.create_all(engine)
 

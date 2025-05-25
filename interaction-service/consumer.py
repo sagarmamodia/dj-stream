@@ -1,46 +1,136 @@
 from fastapi import FastAPI, Depends
 import pika
 from utils import JsonResponse
-import models
+from models import Likes, Dislikes, SubscriptionEntry, Comments, SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy import select, func, delete
 import json
 import uuid
+
+def add_like(session: Session, user_id: str, video_id: str):
+    user_uuid = uuid.UUID(user_id)
+    video_uuid = uuid.UUID(video_id) 
+    
+    stmt = select(Likes).where(Likes.user_id==user_uuid, Likes.video_id==video_uuid)
+    like_entry = session.execute(stmt).scalar_one_or_none()
+    
+    if like_entry is not None:
+        return
+
+    like_entry = Likes(user_id=user_uuid, video_id=video_uuid) 
+    session.add(like_entry)
+    session.commit()
+    session.refresh(like_entry)
+
+def remove_like(session:Session, user_id:str, video_id:str):
+    user_uuid = uuid.UUID(user_id)
+    video_uuid = uuid.UUID(video_id)
+    stmt = select(Likes).where(Likes.user_id==user_uuid, Likes.video_id==video_uuid)
+
+    like_entry = session.execute(stmt).scalar_one_or_none()
+    
+    if like_entry is not None:
+        session.delete(like_entry) 
+        session.commit()
+
+def add_dislike(session: Session, user_id: str, video_id: str):
+    user_uuid = uuid.UUID(user_id)
+    video_uuid = uuid.UUID(video_id) 
+    
+    stmt = select(Dislikes).where(Dislikes.user_id==user_uuid, Dislikes.video_id==video_uuid)
+    dislike_entry = session.execute(stmt).scalar_one_or_none()
+    
+    if dislike_entry is not None:
+        return
+
+    dislike_entry = Dislikes(user_id=user_id, video_id=video_id) 
+    session.add(dislike_entry)
+    session.commit()
+    session.refresh(dislike_entry)
+
+def remove_dislike(session: Session, user_id: str, video_id: str):
+    user_uuid = uuid.UUID(user_id)
+    video_uuid = uuid.UUID(video_id) 
+    
+    stmt = select(Dislikes).where(Dislikes.user_id==user_uuid, Dislikes.video_id==video_uuid)
+    dislike_entry = session.execute(stmt).scalar_one_or_none()
+    
+    if dislike_entry is not None:
+        session.delete(dislike_entry)
+        session.commit()
+
+def add_comment(session: Session, user_id:str, video_id:str, content:str):
+    user_uuid = uuid.UUID(user_id)
+    video_uuid = uuid.UUID(video_id) 
+    
+    comment_entry = Comments(user_id=user_uuid, video_id=video_uuid, content=content)
+    session.add(comment_entry)
+    session.commit()
+    session.refresh(comment_entry)
+
+def add_subscription(session: Session, user_id:str, channel_id:str):
+    user_uuid = uuid.UUID(user_id)
+    channel_uuid = uuid.UUID(channel_id) 
+    
+    #check if it already exists 
+    stmt = select(SubscriptionEntry).where(SubscriptionEntry.user_id==user_uuid, SubscriptionEntry.channel_id==channel_uuid)
+    entry = session.execute(stmt).scalar_one_or_none()
+
+    if(entry is not None):
+        return 
+    
+    entry = SubscriptionEntry(user_id=user_uuid, channel_id=channel_uuid)
+    session.add(entry)
+    session.commit()
+    session.refresh(entry)
+
+def remove_subscription(session:Session, user_id:str, channel_id:str):
+    user_uuid = uuid.UUID(user_id)
+    channel_uuid = uuid.UUID(channel_id) 
+    
+    #check if it already exists 
+    stmt = select(SubscriptionEntry).where(SubscriptionEntry.user_id==user_uuid, SubscriptionEntry.channel_id==channel_uuid)
+    entry = session.execute(stmt).scalar_one_or_none()
+
+    if(entry is not None):
+        session.delete(entry)
+        session.commit()
+    
+
+# ============ Consumer Code =================
 
 QUEUE_NAME = "interaction-events"
 
 def callback(ch, method, properties, body):
     body = json.loads(body)
 
-    # update db
-    session = models.SessionLocal()
+    session = SessionLocal()
     if body['event'] == 'like':
-        user_id = uuid.UUID(body['user_id'])
-        video_id = uuid.UUID(body['video_id'])
-        like_entry = models.Likes(user_id=user_id, video_id=video_id) 
-        session.add(like_entry)
-        session.commit()
-        session.refresh(like_entry)
-        print(f"{user_id} liked {video_id}.")
-    elif body['event'] =='dislike':
-        user_id = uuid.UUID(body['user_id'])
-        video_id = uuid.UUID(body['video_id'])
-        dislike_entry = models.Dislikes(user_id=user_id, video_id=video_id) 
-        session.add(dislike_entry)
-        session.commit()
-        session.refresh(dislike_entry)
-        print(f"{user_id} disliked {video_id}.")
-    elif body['comment'] == 'comment':
-        user_id = uuid.UUID(body['user_id'])
-        video_id = uuid.UUID(body['video_id'])
-        content = body['content']
-        comment_entry = models.Dislikes(user_id=user_id, video_id=video_id, content=content) 
-        session.add(comment_entry)
-        session.commit()
-        session.refresh(dislike_entry)
-        print(f"{user_id} commented {content} on {video_id}.")
+        remove_dislike(session, body['user_id'], body['video_id'])
+        add_like(session, body['user_id'], body['video_id'])
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    if body['event'] == 'remove_like':
+        remove_like(session, body['user_id'], body['video_id'])
+
+    elif body['event'] =='dislike':
+        remove_like(session, body['user_id'], body['video_id'])
+        add_dislike(session, body['user_id'], body['video_id'])
+
+    elif body['event'] == 'remove_dislike':
+        remove_dislike(session, body['user_id'], body['video_id'])
+
+    elif body['event'] == 'comment':
+        add_comment(session, body['user_id'], body['video_id'], body['content'])
+
+    elif body['event'] == 'subscribe':
+        add_subscription(session, body['user_id'], body['channel_id'])
+ 
+    elif body['event'] == 'unsubscribe':
+        remove_subscription(session, body['user_id'], body['channel_id'])
+
+    print("Event successfully consumed.")
     session.close()
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     connection_parameters = pika.ConnectionParameters(host='localhost')
@@ -50,7 +140,7 @@ def main():
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
     channel.basic_qos(prefetch_count=1)
 
-    print(f"Waiting for message...")
+    print(f"Waiting for messages...")
     channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
     channel.start_consuming()
 

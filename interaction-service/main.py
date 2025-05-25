@@ -42,7 +42,7 @@ def get_likes(video_id: str, session: Session=Depends(get_db)):
 
     return response
 
-@app.post('/interaction/like_video/{video_id}/')
+@app.post('/interaction/auth_required/add_like/{video_id}/')
 def like_video(request: Request, video_id: str):
     if(not is_valid_uuid(video_id)):
         return JsonResponse(error="{video_id} is not a valid ID", status=400)
@@ -51,7 +51,7 @@ def like_video(request: Request, video_id: str):
         user_id = request.headers.get('X-User-ID')
     except:
         return JsonResponse(error="Request not authorized", status=401)
-    
+
     try:
         mq.publish({"event": "like", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
     except:
@@ -59,8 +59,26 @@ def like_video(request: Request, video_id: str):
     
     return JsonResponse(status=200)
 
-@app.post('/interaction/dislike_video/{video_id}/')
-def like_video(request: Request, video_id: str):
+@app.post('/interaction/auth_required/remove_like/{video_id}/')
+def remove_like_video(request: Request, video_id: str):
+    if(not is_valid_uuid(video_id)):
+        return JsonResponse(error="{video_id} is not a valid ID", status=400)
+
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+
+    try:
+        mq.publish({"event": "remove_like", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+    
+    return JsonResponse(status=200)
+
+
+@app.post('/interaction/auth_required/add_dislike/{video_id}/')
+def dislike_video(request: Request, video_id: str):
     if(not is_valid_uuid(video_id)):
         return JsonResponse(error="{video_id} is not a valid ID", status=400)
 
@@ -76,13 +94,31 @@ def like_video(request: Request, video_id: str):
     
     return JsonResponse(status=200)
 
-@app.post('/interaction/comment_video/')
-def like_video(request: Request, comment: schemas.CommentRequest):
+@app.post('/interaction/auth_required/remove_dislike/{video_id}/')
+def remove_dislike_video(request: Request, video_id: str):
+    if(not is_valid_uuid(video_id)):
+        return JsonResponse(error="{video_id} is not a valid ID", status=400)
+
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+
+    try:
+        mq.publish({"event": "remove_dislike", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+    
+    return JsonResponse(status=200)
+
+
+@app.post('/interaction/auth_required/comment_video/')
+def comment_video(request: Request, comment: schemas.CommentRequest):
     video_id = comment.video_id
     content = comment.content
 
     # constraints
-    if not is_valid_id(video_id):
+    if not is_valid_uuid(video_id):
         return JsonResponse(error=f"{video_id} is not a valid ID")
     if len(content) > 200:
         return JsonResponse(error=f"The max limit for comment is 200 words.")
@@ -93,10 +129,41 @@ def like_video(request: Request, comment: schemas.CommentRequest):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "comment", "video_id": video_id, "user_id": user_id, "content"}, QUEUE_NAME)
+        mq.publish({"event": "comment", "video_id": video_id, "user_id": user_id, "content": content}, QUEUE_NAME)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
     return JsonResponse(status=200)
 
+@app.post('/interaction/auth_required/subscribe/{channel_id}/')
+def subscribe_channel(request: Request, channel_id: str):
+    if not is_valid_uuid(channel_id):
+        return JsonResponse(error=f"{channel_id} is not a valid ID.")
+   
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+       
+    try:
+        mq.publish({'event': 'subscribe', 'user_id': user_id, 'channel_id': channel_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
 
+@app.post('/interaction/auth_required/unsubscribe/{channel_id}/')
+def unsubscribe_channel(request: Request, channel_id: str):
+    if not is_valid_uuid(channel_id):
+        return JsonResponse(error=f"{channel_id} is not a valid ID.")
+   
+    try:
+        user_id = request.headers.get('X-User-ID')
+    except:
+        return JsonResponse(error="Request not authorized", status=401)
+       
+    try:
+        mq.publish({'event': 'unsubscribe', 'user_id': user_id, 'channel_id': channel_id}, QUEUE_NAME)
+    except:
+        return JsonResponse(error="Could not update database", status=500)
+
+
+    
