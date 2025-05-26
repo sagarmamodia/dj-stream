@@ -87,8 +87,7 @@ def oauth_callback(request):
         })
 
 
-def authenticate_request(request):
-    
+def authenticate_request(request):    
     try:
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         jwt_access_token = auth_header.split()[1]
@@ -107,6 +106,7 @@ def authenticate_request(request):
     response['X-email'] = user_data['email']
     response['X-name'] = user_data['name'] 
     return response
+
 
 @csrf_exempt
 def renew_jwt_token(request):

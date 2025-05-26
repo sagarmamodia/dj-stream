@@ -20,7 +20,8 @@ def get_db():
         db.close()
 
 # rabbitmq 
-QUEUE_NAME = "interaction-events"
+EVENTS_QUEUE = "interaction-events"
+NOTIFICATIONS_QUEUE = "notifications"
 
 @app.on_event("startup")
 def startup():
@@ -53,7 +54,7 @@ def like_video(request: Request, video_id: str):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "like", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+        mq.publish({"event": "like", "video_id": video_id, "user_id": user_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
@@ -70,7 +71,7 @@ def remove_like_video(request: Request, video_id: str):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "remove_like", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+        mq.publish({"event": "remove_like", "video_id": video_id, "user_id": user_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
@@ -88,7 +89,7 @@ def dislike_video(request: Request, video_id: str):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "dislike", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+        mq.publish({"event": "dislike", "video_id": video_id, "user_id": user_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
@@ -105,7 +106,7 @@ def remove_dislike_video(request: Request, video_id: str):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "remove_dislike", "video_id": video_id, "user_id": user_id}, QUEUE_NAME)
+        mq.publish({"event": "remove_dislike", "video_id": video_id, "user_id": user_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
@@ -129,7 +130,7 @@ def comment_video(request: Request, comment: schemas.CommentRequest):
         return JsonResponse(error="Request not authorized", status=401)
 
     try:
-        mq.publish({"event": "comment", "video_id": video_id, "user_id": user_id, "content": content}, QUEUE_NAME)
+        mq.publish({"event": "comment", "video_id": video_id, "user_id": user_id, "content": content}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
     
@@ -146,7 +147,7 @@ def subscribe_channel(request: Request, channel_id: str):
         return JsonResponse(error="Request not authorized", status=401)
        
     try:
-        mq.publish({'event': 'subscribe', 'user_id': user_id, 'channel_id': channel_id}, QUEUE_NAME)
+        mq.publish({'event': 'subscribe', 'user_id': user_id, 'channel_id': channel_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
 
@@ -161,7 +162,7 @@ def unsubscribe_channel(request: Request, channel_id: str):
         return JsonResponse(error="Request not authorized", status=401)
        
     try:
-        mq.publish({'event': 'unsubscribe', 'user_id': user_id, 'channel_id': channel_id}, QUEUE_NAME)
+        mq.publish({'event': 'unsubscribe', 'user_id': user_id, 'channel_id': channel_id}, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
 
