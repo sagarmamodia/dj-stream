@@ -147,7 +147,12 @@ def subscribe_channel(request: Request, channel_id: str):
         return JsonResponse(error="Request not authorized", status=401)
        
     try:
-        mq.publish({'event': 'subscribe', 'user_id': user_id, 'channel_id': channel_id}, EVENTS_QUEUE)
+        message = {
+            "event": "subscribe",
+            "user_id": str(user_id),
+            "channel_id": str(channel_id)
+        }
+        mq.publish(message, EVENTS_QUEUE)
     except:
         return JsonResponse(error="Could not update database", status=500)
 

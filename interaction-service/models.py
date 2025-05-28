@@ -49,8 +49,6 @@ class SubscriptionEntry(Base):
     channel_id = Column(UUID(as_uuid=True))
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
-    
-
 
 Base.metadata.create_all(engine)
 

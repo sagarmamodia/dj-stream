@@ -7,6 +7,8 @@ from sqlalchemy import select, func, delete
 import json
 import uuid
 
+NOTIFICATIONS_QUEUE = 'notifications'
+
 def add_like(session: Session, user_id: str, video_id: str):
     user_uuid = uuid.UUID(user_id)
     video_uuid = uuid.UUID(video_id) 
@@ -95,7 +97,33 @@ def remove_subscription(session:Session, user_id:str, channel_id:str):
     if(entry is not None):
         session.delete(entry)
         session.commit()
-    
+
+def notify_subscribers(ch, session: Session, body: dict[str, str]):
+    channel_id = body['channel_id']
+    channel_name = body['channel_name']
+    video_id = body['video_id']
+    title = body['title']
+
+    try:
+        stmt = select(SubscriptionEntry).where(SubscriptionEntry.channel_id==uuid.UUID(channel_id))
+        subscribers = session.execute(stmt).scalars().all()
+    except:
+        print("Failure to fetch subscribers from database")
+        return
+
+    for subscriber in subscribers:
+
+        message = {
+            "destination_user_id": str(subscriber.user_id),
+            "payload": body
+        }
+
+        ch.basic_publish(
+            exchange='',
+            routing_key=NOTIFICATIONS_QUEUE,
+            body=json.dumps(message),
+            properties=pika.BasicProperties(delivery_mode=2) 
+        )
 
 # ============ Consumer Code =================
 
@@ -109,7 +137,7 @@ def callback(ch, method, properties, body):
         remove_dislike(session, body['user_id'], body['video_id'])
         add_like(session, body['user_id'], body['video_id'])
 
-    if body['event'] == 'remove_like':
+    elif body['event'] == 'remove_like':
         remove_like(session, body['user_id'], body['video_id'])
 
     elif body['event'] =='dislike':
@@ -128,7 +156,10 @@ def callback(ch, method, properties, body):
     elif body['event'] == 'unsubscribe':
         remove_subscription(session, body['user_id'], body['channel_id'])
 
-    print("Event successfully consumed.")
+    elif body['event'] == 'video_uploaded':
+        notify_subscribers(ch, session, body)
+
+    print(f"{body['event']} event successfully consumed.")
     session.close()
     ch.basic_ack(delivery_tag=method.delivery_tag)
 

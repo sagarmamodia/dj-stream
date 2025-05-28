@@ -31,12 +31,12 @@ class VideoInPlaylistEntry(models.Model):
 #     opened_at = models.DateTimeField()
 #     closed_at = models.DateTimeField()
 
-class SubscriberEntry(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    channel_id = models.UUIDField()
-    user_id = models.UUIDField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
+# class SubscriberEntry(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     channel_id = models.UUIDField()
+#     user_id = models.UUIDField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#
 class Video(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     channel_id = models.UUIDField()

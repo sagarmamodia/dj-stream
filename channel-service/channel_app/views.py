@@ -1,11 +1,13 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Channel, Playlist, VideoInPlaylistEntry, SubscriberEntry, Video
+from .models import Channel, Playlist, VideoInPlaylistEntry, Video
 import json
 from django.conf import settings
 import requests
 from .utils import parse_auth_headers
 from django.views.decorators.csrf import csrf_exempt
+from .rabbitmq import get_channel
+import pika
 
 def get_channel_info(request, channel_id):
     try:
@@ -348,6 +350,12 @@ def upload_video_metadata(request):
         except:
             return JsonResponse({"error": "Invalid data format."}, status=400)
 
+        try:
+            channel = Channel.objects.get(id=channel_id)
+        except:
+            return JsonResponse({"error": f"Channel with {channel_id} does not exist."}, status=400)
+
+
         #check if the authenticated user is the owner of the file_id
 
         #check if file_id exists in mongodb database
@@ -357,9 +365,26 @@ def upload_video_metadata(request):
             video, created = Video.objects.get_or_create(channel_id=channel_id, title=title, description=desc, public=public, file_id=file_id)
         except:
             return JsonResponse({"error": "Failure to put video metadata in the database"}, status=500)
-        
-        print(type(video))
 
+        message_for_queue = {
+            "event": "video_uploaded",
+            "channel_id": str(channel.id),
+            "channel_name": channel.name, 
+            "video_id": str(video.id),
+            "title": video.title 
+        }
+        
+        try:
+            channel = get_channel()
+            channel.basic_publish(
+                exchange='',
+                routing_key=settings.EVENTS_QUEUE,
+                body=json.dumps(message_for_queue),
+                properties=pika.BasicProperties(delivery_mode=2)
+            )
+        except:
+            print("Failure to put video uploaded message on the queue")
+        
         return JsonResponse({"video_id": str(video.id)})
 
     else:
@@ -372,40 +397,3 @@ def get_searched_video(request, search_query):
 def get_video_recommendations(request):
     pass
 
-def upload_video_metadata(request):
-    """
-    Post data format
-    {
-        channel_id 
-        title 
-        description
-        public: Optional
-        file_id - id of file in object storage
-    }
-    """ 
-    if request.method == "POST":
-        try:
-            data = json.loads(request.data)
-            channel_id = data['channel_id']
-            title=  data['title']
-            desc = data['description']
-            public = data['public']
-            file_id = data['file_id']
-        except:
-            return JsonResponse({"error": "Invalid data format"}, status=400)
-        try:
-            channel = Channel.objects.filter(id=channel_id).first()
-        except:
-            return JsonResponse({"error": "Failed to fetch channel from database"}, status=500)
-
-        if(channel.user_id != request.user.id):
-            return JsonResponse({"error": "You are not the owner of the channel"}, status=401)
-
-        try:
-            video_metadata_id = Video.objects.get_or_create(channel_id=channel_id, title=title, description=desc, public=public, file_id=file_id)
-        except:
-            return JsonResponse({"error": "Failed to add metadata in the database"}, status=500)
-        
-        return JsonResponse({"video_id": video_metadata_id.id}, status=200)
-    else:
-        return JsonResponse({"error": "Only POST requests are allowed."}, status=400)

@@ -56,8 +56,8 @@ async def redis_listener():
 
             try:
                 data = json.loads(message["data"])
-                user_id = data["user_id"]
-                payload = data["message"]
+                user_id = data["destination_user_id"]
+                payload = json.dumps(data["payload"])
 
                 websocket = connected_users.get(str(user_id))
                 if websocket:

@@ -24,7 +24,6 @@ SECRET_KEY = 'django-insecure-&ne)1lwyrdvp)2*&ny$w8ufd=$#-))00$npjon^9decjv^$emp
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
@@ -124,3 +123,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# RabbitMQ config 
+RABBITMQ_URL = "amqp://guest:guest@localhost"
+EVENTS_QUEUE = "interaction-events"
+
