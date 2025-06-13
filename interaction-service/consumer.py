@@ -6,8 +6,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, func, delete
 import json
 import uuid
+import os
 
 NOTIFICATIONS_QUEUE = 'notifications'
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+RABBITMQ_PORT = os.getenv('RABBITMQ_PORT', 5672)
 
 def add_like(session: Session, user_id: str, video_id: str):
     user_uuid = uuid.UUID(user_id)
@@ -164,7 +167,7 @@ def callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
-    connection_parameters = pika.ConnectionParameters(host='localhost')
+    connection_parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT)
     connection = pika.BlockingConnection(connection_parameters)
     channel = connection.channel()
 

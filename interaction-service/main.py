@@ -7,6 +7,8 @@ import models
 import schemas
 import uuid
 from rabbitmq import RabbitMQ
+import uvicorn
+import os
 
 app = FastAPI()
 mq = RabbitMQ()
@@ -30,6 +32,10 @@ def startup():
 @app.on_event("shutdown")
 def shutdown():
     mq.close()
+
+@app.get('/home/')
+def home():
+    return JsonResponse(resp="Welcome to interaction_service")
 
 @app.get('/interaction/likes/{video_id}/', response_model=schemas.LikesResponse)
 def get_likes(video_id: str, session: Session=Depends(get_db)):
@@ -171,5 +177,6 @@ def unsubscribe_channel(request: Request, channel_id: str):
     except:
         return JsonResponse(error="Could not update database", status=500)
 
-
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)
     

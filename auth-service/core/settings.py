@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,16 +81,16 @@ BACKEND_URL = 'http://localhost:8000'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'default',
-        'USER': 'kiraxd7',
-        'PASSWORD': 'kiraxd7',
-        'HOST': 'localhost',
-        'PORT': 5432
+        'NAME': os.getenv('POSTGRES_NAME', 'default'),
+        'USER': os.getenv('POSTGRES_USER', 'kiraxd7'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'kiraxd7'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', 5432)
     }
 }
 
 MONGO_DB_NAME = "Authentication"
-MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = f"mongodb://{os.getenv('MONGO_HOST', 'localhost')}:{os.getenv('MONGO_PORT', 27017)}/"
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

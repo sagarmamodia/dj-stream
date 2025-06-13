@@ -149,7 +149,7 @@ def renew_jwt_token(request):
         except:
             return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
 
-        return JsonResponse({'access_token': renewed_jwt_token, 'refresh_token': renewed_refresh_token}, status=200)
+        return JsonResponse({"access": renewed_jwt_token, "refresh_token": renewed_refresh_token}, status=200)
     
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
@@ -180,7 +180,7 @@ def register_user(request):
         except:
             return JsonResponse({"error": "Failure to create user in database."}, status=500)
         
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({"id": str(user.id)})
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)
 
@@ -226,7 +226,7 @@ def login_user(request):
             except:
                 return JsonResponse({"error": "Failure to save refresh token to database."}, status=500)
         
-        return JsonResponse({'access_token': jwt_access_token, 'refresh_token': jwt_refresh_token}, status=200)
+        return JsonResponse({"id": str(user.id), "access": jwt_access_token, "refresh": jwt_refresh_token}, status=200)
     
     else:
         return JsonResponse({'error': 'Only post requests are allowed'}, status=401)

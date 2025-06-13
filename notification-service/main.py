@@ -3,14 +3,18 @@ import asyncio
 from redis.asyncio import Redis
 import requests
 import json
+import os
+import uvicorn
 
-AUTH_SERVICE = "http://localhost:8000/"
+AUTH_SERVICE = f"http://{os.getenv('AUTH_SERVICE_HOST', 'localhost')}:{os.getenv('AUTH_SERVICE_PORT', 8000)}/"
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 
 app = FastAPI()
 
 connected_users: dict[str, WebSocket] = {}
 
-REDIS_URL = 'redis://localhost:6379'
+REDIS_URL = f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', 6379)}"
 NOTIFICATIONS_CHANNEL = 'notifications'
 
 redis = None 
@@ -46,7 +50,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
          
 async def redis_listener():
     global redis, pubsub
-    redis = Redis(host="localhost", port=6379, decode_responses=True)
+    redis = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
     pubsub = redis.pubsub()
     await pubsub.subscribe(NOTIFICATIONS_CHANNEL)
     
@@ -86,6 +90,8 @@ async def shutdown_event():
         redis.connection_pool.disconnect()  # Extra cleanup for all pooled connections
     print("Redis cleanup complete.")
 
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8004, reload=True)
 
 
 

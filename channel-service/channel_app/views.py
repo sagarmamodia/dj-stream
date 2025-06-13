@@ -9,6 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from .rabbitmq import get_channel
 import pika
 
+def home(request):
+    return JsonResponse({"res": "Welcome to channel_service"})
+
 def get_channel_info(request, channel_id):
     try:
         channel = Channel.objects.filter(id=channel_id).first()
@@ -46,8 +49,6 @@ def get_all_channels(request, user_id):
         response["channel_list"].append(channel_dict)
 
     return JsonResponse(response, status=200)
-
-
 
 def get_all_videos_of_channel(request, channel_id):
     try:

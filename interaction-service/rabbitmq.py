@@ -1,5 +1,8 @@
 import pika
 import json
+import os
+
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
 
 class RabbitMQ:
     def __init__(self):
@@ -7,7 +10,7 @@ class RabbitMQ:
         self.channel = None 
 
     def connect(self):
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))
         self.channel = self.connection.channel()
         print("Connected to RabbitMQ.")
 

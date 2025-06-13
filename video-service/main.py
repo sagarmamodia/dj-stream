@@ -8,11 +8,15 @@ from bson.objectid import ObjectId
 from gridfs import GridFS
 import uuid
 import pika
+import uvicorn
+import os
 
 app = FastAPI()
 
 # MongoDB connection
-client = MongoClient("mongodb://localhost:27017/")
+MONGO_HOST = os.getenv('MONGO_HOST', 'localhost')
+MONGO_PORT = os.getenv('MONGO_PORT', 27017)
+client = MongoClient(f"mongodb://{MONGO_HOST}:{MONGO_PORT}/")
 db_temp = client['db_temp']
 db_videos = client['db_videos']
 
@@ -193,4 +197,7 @@ def stream_video(request: Request, file_id: str):
 
 @app.get('/home/')
 def home():
-    return JsonResponse(res="It works")
+    return JsonResponse(res="Welcome to video_service")
+
+if __name__ == "__main__":
+    uvicorn.run('main:app', host="0.0.0.0", port=8002, reload=True)

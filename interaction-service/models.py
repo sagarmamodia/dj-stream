@@ -3,12 +3,15 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime, timezone
+import os
+import time 
+from sqlalchemy.exc import OperationalError
 
-username = 'kiraxd7'
-password = 'kiraxd7'
-host = 'localhost'
-port = 5432
-database = 'default'
+username = os.getenv('POSTGRES_USER', 'postgres')
+password = os.getenv('POSTGRES_PASSWORD', 'postgres')
+host = os.getenv('POSTGRES_HOST', 'localhost')
+port = os.getenv('POSTGRES_PORT', 5432)
+database = os.getenv('POSTGRES_NAME', 'default')
 
 engine = create_engine(f'postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}')
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -50,8 +53,15 @@ class SubscriptionEntry(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
 
-Base.metadata.create_all(engine)
+def create_tables_with_retry(engine, Base, retries=5):
+    for attempt in range(retries):
+        try:
+            Base.metadata.create_all(bind=engine, checkfirst=True)
+            print("Tables created.")
+            return
+        except OperationalError as e:
+            print(f"DB not ready (attempt {attempt + 1}): {e}")
+            time.sleep(2)
+    raise Exception("Failed to create tables after several retries")   
 
-    
-
-
+create_tables_with_retry(engine, Base)
