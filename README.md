@@ -51,3 +51,8 @@ DjStream uses Postgres for relational database - it stores likes, videos metadat
 The following diagram depicts the database schema - tables and relationships among them:
  
 ![image](https://github.com/user-attachments/assets/94f7a738-2577-471b-8e3a-45bbeaa9b4e9)
+
+# Further Improvements
+1. Implement caching to reduce latency of response
+2. Add video tracking functionality to track users behaviors and their watch history - this will be important for recommendation service.
+3. Add a recommendation service
