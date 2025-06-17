@@ -9,6 +9,19 @@ docker-compose up -d --build
 ```
 This will run all the services(including postgres, mongodb, redis and rabbitmq) inside docker containers and expose the port 80 of API Gateway. The application is therefore running at ```localhost:80/```.
 
+To start the application without rebuilding the containers use the following command:
+```
+docker-compose start
+```
+To stop the application and remove the containers use the following command:
+```
+docker-compose down
+```
+To just stop the application but keep the containers use the following command:
+```
+docker-compose stop
+```
+
 # Architecture
 
 The application consist of multiple services (in a normal microservices fashion)
