@@ -177,15 +177,51 @@
   }
   ```
 
-- POST channel/auth_required/playlist/create/
-  - create a playlist
+- POST channel/auth_required/playlist/add_video/
+  - add a video in playlist
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    playlist_id: <value>,
+    video_id: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    status: <value>
+  }
+  ```
+
+- POST channel/auth_required/playlist/remove_video/
+  - remove a video in playlist
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    playlist_id: <value>,
+    video_id: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    status: <value>
+  }
+  ```
+  
+- POST channel/auth_required/video/upload_metadata/
+  - Upload video-metadata such as title, description, etc after a video file has been successfully uploaded.
   - **requires access token in Bearer header**
   - Expected JSON format
   ```
   {
     channel_id: <value>,
-    name: <value>,
-    description: <value>
+    title: <value>,
+    description: <value>,
+    public: <value>,
+    file_id: <value>,
   }
   ```
   - Response format
