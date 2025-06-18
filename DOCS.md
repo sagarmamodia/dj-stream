@@ -230,3 +230,68 @@
     id: <value>
   }
   ```
+
+## video_service
+- POST video/upload/initate/
+  - request creation of an upload session
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    filename: <value>,
+    chunk_size: <value>,
+    total_chunks: <value>,
+  }
+  ```
+  - Response format
+  ```
+  {
+    upload_session_id: <value>
+  }
+  ```
+
+- POST video/upload/chunk/
+  - upload a chunk
+  - This request requires the data in multipart/format-data
+  - **requires access token in Bearer header**
+  - Expected fields
+  ```
+  upload_id: <value>,
+  filename: <value>,
+  chunk_number: <value>,
+  file: <byte_data>,
+  ```
+  - Response format
+  ```
+  {
+    result: 'success'
+  }
+  ```
+  
+- POST video/upload/complete/
+  - After all the chunks have been uploaded request the merging of all the chunks and a file_id of the uploaded file.
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    upload_session_id: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    file_id: <value>
+  }
+  ```
+- GET video/stream/<file_id>/
+  - request video with file_id as a streaming response.
+  - The range headers must be valid
+  - It returns the data of video file in chunks of 64 KB with response headers
+  ```
+  Content-Type: <value>,
+  Accept-Ranges: bytes,
+  Content-Length: <value>,
+  Content-Range: <value>
+  ```
+
+## interaction_service
