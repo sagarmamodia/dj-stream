@@ -39,7 +39,7 @@
 ## channel_service
 - GET channel/info/<channel_id>/
   - get all the information about a channel
-   - Response format
+  - Response format
   ```
   {
   id: <value>,
@@ -49,12 +49,13 @@
   created_at: <value>
   }
   ```
+  
 - GET channel/user/get_channels/<user_id>/
   - get all the channels that belongs to the user with id <user_id>
-   - Response format
+  - Response format
   ```
   {
-    channel_list: [
+    channels: [
       {
           id: <value>,
           name: <value>,
@@ -68,9 +69,10 @@
     ]
   }
   ```
+  
 - GET channel/video/get_all/<channel_id>/
   - get all the videos of a channel
-   - Response format
+  - Response format
   ```
   {
     videos: [
@@ -87,9 +89,10 @@
     ]
   }
   ```
+  
 - GET channel/playlist/get_all/<channel_id>/
   - get all the playlists of a channel
-   - Response format
+  - Response format
   ```
   {
     playlists: [
@@ -105,9 +108,10 @@
     ]
   }
   ```
+  
 - GET channel/playlist/info/<playlist_id>/
   - get all the information about a playlist
-   - Response format
+  - Response format
   ```
   {
     id: <value>,
@@ -115,5 +119,78 @@
     name: <value>,
     description: <value>,
     created_at: <value>
+  }
+  ```
+  
+- GET channel/playlist/get_videos/<playlist_id>/
+  - get all the videos of a playlist
+  - Response format
+  ```
+   {
+    videos: [
+      {
+          id: <value>,
+          channel_id: <value>,
+          title: <value>,
+          description: <value>,
+          file_id: <value>
+      },
+      {
+        ...
+      },
+    ]
+  }
+  ```
+  
+- POST channel/auth_required/create/
+  - create a channel
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    name: <value>,
+    description: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    id: <value>
+  }
+  ```
+  
+- POST channel/auth_required/playlist/create/
+  - create a playlist
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    channel_id: <value>,
+    name: <value>,
+    description: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    id: <value>
+  }
+  ```
+
+- POST channel/auth_required/playlist/create/
+  - create a playlist
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    channel_id: <value>,
+    name: <value>,
+    description: <value>
+  }
+  ```
+  - Response format
+  ```
+  {
+    id: <value>
   }
   ```
