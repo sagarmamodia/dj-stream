@@ -329,3 +329,7 @@
     content: <value>
   }
   ```
+
+## notification_service
+- WS ws/<access_token>/
+  - request a websocket connection to the service
