@@ -68,33 +68,52 @@
     ]
   }
   ```
-- GET channel/info/<channel_id>/
-  - get all the information about a channel
+- GET channel/video/get_all/<channel_id>/
+  - get all the videos of a channel
    - Response format
   ```
-  id: <value>,
-  name: <value>,
-  description: <value>,
-  user_id: <value>,
-  created_at: <value>
+  {
+    videos: [
+      {
+          id: <value>,
+          channel_id: <value>,
+          title: <value>,
+          description: <value>,
+          file_id: <value>
+      },
+      {
+        ...
+      },
+    ]
+  }
   ```
-- GET channel/info/<channel_id>/
-  - get all the information about a channel
+- GET channel/playlist/get_all/<channel_id>/
+  - get all the playlists of a channel
    - Response format
   ```
-  id: <value>,
-  name: <value>,
-  description: <value>,
-  user_id: <value>,
-  created_at: <value>
+  {
+    playlists: [
+      {
+          id: <value>,
+          name: <value>,
+          description: <value>,
+          created_at: <value>
+      },
+      {
+        ...
+      },
+    ]
+  }
   ```
-- GET channel/info/<channel_id>/
-  - get all the information about a channel
+- GET channel/playlist/info/<playlist_id>/
+  - get all the information about a playlist
    - Response format
   ```
-  id: <value>,
-  name: <value>,
-  description: <value>,
-  user_id: <value>,
-  created_at: <value>
+  {
+    id: <value>,
+    channel_id: <value>,
+    name: <value>,
+    description: <value>,
+    created_at: <value>
+  }
   ```
