@@ -295,3 +295,37 @@
   ```
 
 ## interaction_service
+- POST interaction/auth_required/add_like/<video_id>/
+  - like a video with id <video_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/remove_like/<video_id>/
+  - remove like from a video with id <video_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/add_dislike/<video_id>/
+  - dislike a video with id <video_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/remove_dislike/<video_id>/
+  - remove dislike from a video with id <video_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/subscribe/<channel_id>/
+  - subscribe a channel with id <channel_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/unsubscribe/<channel_id>/
+  - unsubscribe a channel with id <channel_id>
+  - **requires access token in Bearer header**
+
+- POST interaction/auth_required/comment_video/
+  - add a comment on a video
+  - **requires access token in Bearer header**
+  - Expected JSON format
+  ```
+  {
+    video_id: <value>,
+    content: <value>
+  }
+  ```
