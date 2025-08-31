@@ -356,7 +356,6 @@ def upload_video_metadata(request):
         except:
             return JsonResponse({"error": f"Channel with {channel_id} does not exist."}, status=400)
 
-
         #check if the authenticated user is the owner of the file_id
 
         #check if file_id exists in mongodb database
@@ -364,28 +363,50 @@ def upload_video_metadata(request):
         #store metadata 
         try:
             video, created = Video.objects.get_or_create(channel_id=channel_id, title=title, description=desc, public=public, file_id=file_id)
-        except:
+        except Exception as e:
+            print(f"[ERROR] {e}")
             return JsonResponse({"error": "Failure to put video metadata in the database"}, status=500)
 
-        message_for_queue = {
+        message_for_interaction_queue = {
             "event": "video_uploaded",
             "channel_id": str(channel.id),
             "channel_name": channel.name, 
             "video_id": str(video.id),
-            "title": video.title 
+            "title": video.title, 
         }
         
+        # Put event on the queue for consumption of interaction service
         try:
-            channel = get_channel()
-            channel.basic_publish(
+            mq_channel = get_channel()
+            mq_channel.basic_publish(
                 exchange='',
-                routing_key=settings.EVENTS_QUEUE,
-                body=json.dumps(message_for_queue),
+                routing_key=settings.INTERACTION_EVENTS_QUEUE,
+                body=json.dumps(message_for_interaction_queue),
                 properties=pika.BasicProperties(delivery_mode=2)
             )
         except:
             print("Failure to put video uploaded message on the queue")
         
+        # Put event on the queue for consumption of search service
+        message_for_search_queue = {
+            "event": "video_uploaded",
+            "channel_name": channel.name, 
+            "video_id": str(video.id),
+            "title": video.title, 
+            "description": video.description
+        }
+
+        try:
+            mq_channel = get_channel()
+            mq_channel.basic_publish(
+                exchange='',
+                routing_key=settings.SEARCH_EVENTS_QUEUE,
+                body=json.dumps(message_for_search_queue),
+                properties=pika.BasicProperties(delivery_mode=2)
+            )
+        except:
+            print("Failure to put video uploaded message on the queue")
+
         return JsonResponse({"video_id": str(video.id)})
 
     else:

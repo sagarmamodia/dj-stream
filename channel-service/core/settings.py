@@ -77,8 +77,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_NAME', 'default'),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+        'USER': os.getenv('POSTGRES_USER', 'kiraxd7'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'kiraxd7'),
         'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
         'PORT': os.getenv('POSTGRES_POST', 5432)
     }
@@ -127,5 +127,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # RabbitMQ config 
 RABBITMQ_URL = f"amqp://guest:guest@{os.getenv('RABBITMQ_HOST', 'localhost')}:{os.getenv('RABBITMQ_PORT', 5672)}/"
-EVENTS_QUEUE = "interaction-events"
-
+INTERACTION_EVENTS_QUEUE = "interaction-events"
+SEARCH_EVENTS_QUEUE = "search-events-queue"

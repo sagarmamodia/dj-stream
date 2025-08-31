@@ -14,5 +14,4 @@ urlpatterns = [
     path('auth_required/playlist/create/', views.create_playlist),
     path('auth_required/playlist/add_video/', views.add_video_in_playlist),
     path('auth_required/video/upload_metadata/', views.upload_video_metadata),
-
 ]
