@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Upload - DJStream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .upload-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .upload-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-upload-area {
+            border: 3px dashed #e0e0e0;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            display: none;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 15px;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: rgba(46, 125, 50, 0.1);
+            color: #2e7d32;
+            border: 2px solid rgba(46, 125, 50, 0.3);
+        }
+
+        .status-error {
+            background: rgba(211, 47, 47, 0.1);
+            color: #d32f2f;
+            border: 2px solid rgba(211, 47, 47, 0.3);
+        }
+
+        .auth-section {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .upload-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .upload-header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <div class="upload-header">
+            <h1>🎥 Upload Video</h1>
+            <p>Share your content with the world</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div class="auth-section">
+            <div class="form-group">
+                <label for="jwtToken">JWT Access Token *</label>
+                <input type="password" id="jwtToken" placeholder="Enter your access token" required>
+            </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="form-group">
+            <label>Video File *</label>
+            <div class="file-upload-area" id="fileUploadArea">
+                <div class="upload-icon">📹</div>
+                <h3>Drop your video here or click to browse</h3>
+                <p>Supports MP4, WebM, AVI, MOV files</p>
+                <input type="file" id="videoFile" accept="video/*" style="display: none;">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Preparing upload...</div>
+        </div>
+
+        <!-- Metadata Form -->
+        <form id="metadataForm">
+            <div class="form-group">
+                <label for="channelId">Channel ID *</label>
+                <input type="text" id="channelId" placeholder="Enter channel ID" required>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Title *</label>
+                <input type="text" id="title" placeholder="Enter video title" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Enter video description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="isPublic">Visibility</label>
+                <select id="isPublic">
+                    <option value="true">Public</option>
+                    <option value="false">Private</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn" id="uploadBtn">Upload Video</button>
+        </form>
+
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <script>
+        class VideoUploader {
+            constructor() {
+                this.selectedFile = null;
+                this.uploadSessionId = null;
+                this.fileId = null;
+                this.chunkSize = 1024 * 1024; // 1MB chunks
+                this.apiBase = "http://localhost:80"; // Use current domain
+                
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+
+            initializeElements() {
+                this.fileUploadArea = document.getElementById('fileUploadArea');
+                this.fileInput = document.getElementById('videoFile');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                this.uploadBtn = document.getElementById('uploadBtn');
+                this.statusMessage = document.getElementById('statusMessage');
+                this.jwtToken = document.getElementById('jwtToken');
+            }
+
+            attachEventListeners() {
+                // File upload area events
+                this.fileUploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileUploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
+                this.fileUploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                this.fileUploadArea.addEventListener('drop', this.handleDrop.bind(this));
+                
+                // File input change
+                this.fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                
+                // Upload button
+                this.uploadBtn.addEventListener('click', this.startUpload.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.fileUploadArea.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.fileUploadArea.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.fileUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.selectFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.selectFile(file);
+                }
+            }
+
+            selectFile(file) {
+                if (!file.type.startsWith('video/')) {
+                    this.showStatus('Please select a valid video file.', 'error');
+                    return;
+                }
+
+                this.selectedFile = file;
+                this.displayFileInfo(file);
+                this.fileInfo.style.display = 'block';
+                this.hideStatus();
+            }
+
+            displayFileInfo(file) {
+                const size = (file.size / (1024 * 1024)).toFixed(2);
+                this.fileInfo.innerHTML = `
+                    <strong>📁 ${file.name}</strong><br>
+                    Size: ${size} MB<br>
+                    Type: ${file.type}
+                `;
+            }
+
+            async startUpload() {
+                if (!this.validateForm()) {
+                    return;
+                }
+
+                this.uploadBtn.disabled = true;
+                this.progressContainer.style.display = 'block';
+                this.updateProgress(0, 'Initializing upload...');
+
+                try {
+                    // Step 1: Initiate upload
+                    await this.initiateUpload();
+                    
+                    // Step 2: Upload chunks
+                    await this.uploadChunks();
+                    
+                    // Step 3: Complete upload
+                    await this.completeUpload();
+                    
+                    // Step 4: Upload metadata
+                    await this.uploadMetadata();
+                    
+                    this.showStatus('Video uploaded successfully! 🎉', 'success');
+                    this.resetForm();
+                    
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    this.showStatus(`Upload failed: ${error.message}`, 'error');
+                } finally {
+                    this.uploadBtn.disabled = false;
+                }
+            }
+
+            validateForm() {
+                if (!this.selectedFile) {
+                    this.showStatus('Please select a video file.', 'error');
+                    return false;
+                }
+
+                if (!this.jwtToken.value.trim()) {
+                    this.showStatus('Please enter your JWT token.', 'error');
+                    return false;
+                }
+
+                if (!document.getElementById('channelId').value.trim()) {
+                    this.showStatus('Please enter a channel ID.', 'error');
+                    return false;
+                }
+
+                if (!document.getElementById('title').value.trim()) {
+                    this.showStatus('Please enter a video title.', 'error');
+                    return false;
+                }
+
+                return true;
+            }
+
+            async initiateUpload() {
+                const totalChunks = Math.ceil(this.selectedFile.size / this.chunkSize);
+                
+                const response = await fetch(`${this.apiBase}/video/upload/initiate/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.jwtToken.value}`
+                    },
+                    body: JSON.stringify({
+                        filename: this.selectedFile.name,
+                        chunk_size: this.chunkSize,
+                        total_chunks: totalChunks
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to initiate upload: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                this.uploadSessionId = data.upload_session_id;
+                this.updateProgress(5, 'Upload session created...');
+            }
+
+            async uploadChunks() {
+                const totalChunks = Math.ceil(this.selectedFile.size / this.chunkSize);
+                
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * this.chunkSize;
+                    const end = Math.min(start + this.chunkSize, this.selectedFile.size);
+                    const chunk = this.selectedFile.slice(start, end);
+                    
+                    const formData = new FormData();
+                    formData.append('upload_id', this.uploadSessionId);
+                    formData.append('filename', this.selectedFile.name);
+                    formData.append('chunk_number', i.toString());
+                    formData.append('file', chunk);
+
+                    const response = await fetch(`${this.apiBase}/video/upload/chunk/`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.jwtToken.value}`
+                        },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to upload chunk ${i}: ${response.statusText}`);
+                    }
+
+                    const progress = 5 + ((i + 1) / totalChunks) * 80;
+                    this.updateProgress(progress, `Uploading chunk ${i + 1} of ${totalChunks}...`);
+                }
+            }
+
+            async completeUpload() {
+                const response = await fetch(`${this.apiBase}/video/upload/complete/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.jwtToken.value}`
+                    },
+                    body: JSON.stringify({
+                        upload_session_id: this.uploadSessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to complete upload: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                this.fileId = data.file_id;
+                this.updateProgress(90, 'Processing video...');
+            }
+
+            async uploadMetadata() {
+                const channelId = document.getElementById('channelId').value;
+                const title = document.getElementById('title').value;
+                const description = document.getElementById('description').value;
+                const isPublic = document.getElementById('isPublic').value === 'true';
+
+                const response = await fetch(`${this.apiBase}/channel/auth_required/video/upload_metadata/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.jwtToken.value}`
+                    },
+                    body: JSON.stringify({
+                        channel_id: channelId,
+                        title: title,
+                        description: description,
+                        public: isPublic,
+                        file_id: this.fileId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to upload metadata: ${response.statusText}`);
+                }
+
+                this.updateProgress(100, 'Upload completed!');
+            }
+
+            updateProgress(percentage, text) {
+                this.progressFill.style.width = `${percentage}%`;
+                this.progressText.textContent = text;
+            }
+
+            showStatus(message, type) {
+                this.statusMessage.textContent = message;
+                this.statusMessage.className = `status-message status-${type}`;
+                this.statusMessage.style.display = 'block';
+            }
+
+            hideStatus() {
+                this.statusMessage.style.display = 'none';
+            }
+
+            resetForm() {
+                this.selectedFile = null;
+                this.uploadSessionId = null;
+                this.fileId = null;
+                this.fileInput.value = '';
+                this.fileInfo.style.display = 'none';
+                this.progressContainer.style.display = 'none';
+                document.getElementById('metadataForm').reset();
+            }
+        }
+
+        // Initialize the uploader when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new VideoUploader();
+        });
+    </script>
+</body>
+</html>
