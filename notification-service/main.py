@@ -5,12 +5,23 @@ import requests
 import json
 import os
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 AUTH_SERVICE = f"http://{os.getenv('AUTH_SERVICE_HOST', 'localhost')}:{os.getenv('AUTH_SERVICE_PORT', 8000)}/"
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 
+
 app = FastAPI()
+
+# origins = ["*"]
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"], # Allows all methods
+#     allow_headers=["*"],
+# )
 
 connected_users: dict[str, WebSocket] = {}
 

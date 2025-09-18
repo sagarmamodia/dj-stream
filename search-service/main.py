@@ -1,8 +1,20 @@
 from fastapi import FastAPI, Query
 from es_client import es, INDEX_NAME
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+# origins = ["*"]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"], # Allows all methods
+#     allow_headers=["*"],
+# )
 
 @app.get('/search/health')
 def health_check():

@@ -304,7 +304,7 @@ def remove_video_from_playlist(request):
         try:
             playlist = Playlist.objects.filter(id=playlist_id).first() 
         except: 
-            return JsonResponse({"error": "Failed to fetch playlist from database"}, status=500)     
+            return JsonResponse({"error": "Failed to fetch playlist from databavideo_id))se"}, status=500)     
     
         if playlist is None:
             return JsonResponse({"error": "Playlist not found in database"}, status=400)
@@ -412,6 +412,26 @@ def upload_video_metadata(request):
     else:
         return JsonResponse({"error": "Only POST requests are allowed."}, status=400)
 
+def get_video_metadata(request, video_id):
+
+    try:
+        video = Video.objects.filter(id=video_id).first()
+    except:
+        return JsonResponse({"error": "Error fetching video metadata"}, status=501)
+    
+    if(video is None):
+        return JsonResponse({"error": "Video not found"}, status=400)
+    
+    response = {
+        "id": video.id ,
+        "title": video.title,
+        "description": video.description,
+        "file_id": video.file_id,
+        "public": video.public,
+        "created_at": video.created_at
+    }
+    
+    return JsonResponse(response)
 
 def get_searched_video(request, search_query):
     pass

@@ -9,8 +9,20 @@ import uuid
 from rabbitmq import RabbitMQ
 import uvicorn
 import os
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+# origins = ["*"]
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"], # Allows all methods
+#     allow_headers=["*"],
+# )
+
 mq = RabbitMQ()
 
 # session generator

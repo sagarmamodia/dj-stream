@@ -6,6 +6,7 @@ urlpatterns = [
     path('info/<str:channel_id>/', views.get_channel_info),
     path('user/get_channels/<str:user_id>/', views.get_all_channels),
     path('video/get_all/<str:channel_id>/', views.get_all_videos_of_channel),
+    path('video/<str:video_id>/', views.get_video_metadata),
     path('playlist/get_all/<str:channel_id>/', views.get_playlists_of_channel ),
     path('playlist/info/<str:playlist_id>/', views.get_playlist_info),
     path('playlist/get_videos/<str:playlist_id>/', views.get_videos_in_playlist),
